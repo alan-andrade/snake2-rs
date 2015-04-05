@@ -1,12 +1,4 @@
 [root]
 name = "snake2-rs"
 version = "0.0.1"
-dependencies = [
- "ncurses 5.71.1 (git+https://github.com/jeaye/ncurses-rs.git)",
-]
-
-[[package]]
-name = "ncurses"
-version = "5.71.1"
-source = "git+https://github.com/jeaye/ncurses-rs.git#0d8b1ec9f93438179d4ad09e6aef7810444b4e9a"
 
