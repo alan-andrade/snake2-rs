@@ -160,6 +160,33 @@ impl<'a> Game<'a> {
     //}
 }
 
+struct Movable<'a> {
+    grid: &'a mut Grid,
+    object: &'a Object,
+    start: Position,
+}
+
+impl<'a> Movable<'a> {
+    fn up(&mut self) {
+
+    }
+}
+
+#[test]
+fn movable() {
+    let mut grid = Grid::new(4, 4);
+    let snake = &Object::Snake;
+    let start = Position(1,1);
+
+    let mut movable = Movable {
+        grid: &mut grid,
+        start: start,
+        object: snake
+    };
+
+    movable.up();
+}
+
 trait Collidable {
     fn handle_collition(&self, &Object) -> AllocationEvent;
 }
