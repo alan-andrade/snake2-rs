@@ -4,6 +4,5 @@ name = "snake2-rs"
 version = "0.0.1"
 authors = ["Alan Andrade <alan.andradec@gmail.com>"]
 
-[dependencies.ncurses]
-
-git = "https://github.com/jeaye/ncurses-rs.git"
+[dependencies]
+rand = "0.3"
