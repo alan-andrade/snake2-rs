@@ -12,7 +12,11 @@ struct Grid {
     generator: RandomGenerator
 }
 
-struct Object;
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Object {
+    Foo,
+    Bar
+}
 
 // From top left moving right and down.
 //
@@ -79,7 +83,23 @@ impl Grid {
     }
 
     fn allocate(&mut self, object: Object) {
-        self.source.insert(self.free_random_position(), object);
+        let mut position;
+
+        loop {
+            // Still have to figure out what to do when no positions are left.
+            position = self.generator.gen();
+            if !self.contains(&position) { break; }
+        }
+
+        self.source.insert(position, object);
+    }
+
+    fn allocate_at(&mut self, position: Position, object: Object) {
+        self.source.insert(position, object);
+    }
+
+    fn object_at(&mut self, position: &Position) -> Option<&Object> {
+        return self.source.get(position);
     }
 
     fn occupied_count(&self) -> u8 {
@@ -89,31 +109,35 @@ impl Grid {
     fn contains(&self, position: &Position) -> bool {
         return self.source.contains_key(position);
     }
-
-    fn free_random_position(&mut self) -> Position {
-        let mut position;
-
-        loop {
-            // Still have to figure out what to do when no positions are left.
-            position = self.generator.gen();
-            if !self.contains(&position) { break; }
-        }
-
-        return position;
-    }
 }
 
 #[test]
-fn grid_allocate () {
+fn grid_allocate() {
     let mut grid = Grid::new(5, 5);
 
-    let foo = Object;
-    let bar = Object;
+    let foo = Object::Foo;
+    let bar = Object::Bar;
 
     grid.allocate(foo);
     grid.allocate(bar);
 
     assert_eq!(grid.occupied_count(), 2)
+}
+
+fn grid_allocate_at() {
+    let mut grid = Grid::new(5, 5);
+    let foo = Object::Foo;
+    let position = Position(1, 1);
+
+    grid.allocate_at(position, foo);
+    let position = Position(1, 1);
+
+    assert!(grid.contains(&position));
+
+    match grid.object_at(&position) {
+        Some(object) => assert!(&foo == object),
+        None => panic!()
+    }
 }
 
 #[test]
