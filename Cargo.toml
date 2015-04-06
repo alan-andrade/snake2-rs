@@ -3,3 +3,6 @@
 name = "snake2-rs"
 version = "0.0.1"
 authors = ["Alan Andrade <alan.andradec@gmail.com>"]
+
+[dependencies]
+rand = "0.3"
