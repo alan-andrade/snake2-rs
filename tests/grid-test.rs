@@ -12,13 +12,15 @@ struct Grid {
     generator: RandomGenerator
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Object {
     Foo,
     Bar
 }
 
 type AllocationResult = Result<Position, AllocationError>;
+
+#[derive(PartialEq, Eq, Clone, Debug)]
 enum AllocationError {
     Collition(Object)
 }
@@ -122,6 +124,7 @@ impl Grid {
 }
 
 #[test]
+#[allow(unused_must_use)]
 fn grid_allocate() {
     let mut grid = Grid::new(5, 5);
 
@@ -151,7 +154,22 @@ fn grid_allocate_at() {
         },
         Err(e) => { panic!(e) }
     }
+}
 
+#[test]
+#[allow(unused_must_use)]
+fn grid_collition() {
+    let mut grid = Grid::new(3, 3);
+    let foo = Object::Foo;
+    let bar = Object::Bar;
+    let position = Position(1, 1);
+
+    grid.allocate_at(position, foo);
+
+    match grid.allocate_at(position, bar) {
+        Ok(_) => panic!(),
+        Err(AllocationError::Collition(e)) => { assert_eq!(e, foo) }
+    }
 }
 
 #[test]
