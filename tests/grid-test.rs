@@ -18,11 +18,13 @@ enum Object {
     Bar
 }
 
-type AllocationResult = Result<Position, AllocationError>;
+type AllocationResult = Result<Position, AllocationEvent>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-enum AllocationError {
-    Collition(Object)
+enum AllocationEvent {
+    Collition(Object),
+    Yum,
+    Crash
 }
 
 // From top left moving right and down.
@@ -104,7 +106,7 @@ impl Grid {
 
     fn allocate_at(&mut self, position: Position, object: Object) -> AllocationResult {
         if let Some(existent) = self.source.insert(position, object) {
-            return Err(AllocationError::Collition(existent));
+            return Err(AllocationEvent::Collition(existent));
         } else {
             return Ok(position);
         }
@@ -121,6 +123,51 @@ impl Grid {
     fn contains(&self, position: &Position) -> bool {
         return self.source.contains_key(position);
     }
+}
+
+struct Game<'a> {
+    grid: &'a mut Grid
+}
+
+impl<'a> Game<'a> {
+    fn allocate_at(&mut self, position: Position, object: Object) -> AllocationResult {
+        match self.grid.allocate_at(position, object) {
+            Err(AllocationEvent::Collition(obstacle)) => {
+                // Object conforms to Collidable to be able to
+                // handle collitions.
+                return object.handle_collition(&obstacle);
+            },
+            Err(_) => { return Err(AllocationEvent::Crash) }
+            Ok(ok) => { return Ok(ok)  }
+        }
+    }
+}
+
+trait Collidable {
+    fn handle_collition(&self, &Object) -> AllocationResult;
+}
+
+impl Collidable for Object {
+    fn handle_collition(&self, obstacle: &Object) -> AllocationResult {
+        match (self, obstacle) {
+            (&Object::Foo, &Object::Foo) => { return Err(AllocationEvent::Crash); }
+            (&Object::Foo, &Object::Bar) |
+            (&Object::Bar, &Object::Foo) => { return Err(AllocationEvent::Yum ) }
+            (_, _) => { return Err(AllocationEvent::Crash) }
+        }
+    }
+}
+
+#[test]
+fn game_has_a_grid() {
+    let mut grid = Grid::new(4, 4);
+    let mut game = Game { grid: &mut grid };
+    let foo = Object::Foo;
+    let bar = Object::Bar;
+    let position = Position(1, 1);
+
+    assert_eq!(game.allocate_at(position, foo), Ok(position));
+    assert_eq!(game.allocate_at(position, bar), Err(AllocationEvent::Yum));
 }
 
 #[test]
@@ -152,6 +199,7 @@ fn grid_allocate_at() {
                 None => panic!()
             }
         },
+
         Err(e) => { panic!(e) }
     }
 }
@@ -168,7 +216,8 @@ fn grid_collition() {
 
     match grid.allocate_at(position, bar) {
         Ok(_) => panic!(),
-        Err(AllocationError::Collition(e)) => { assert_eq!(e, foo) }
+        Err(AllocationEvent::Collition(e)) => { assert_eq!(e, foo) }
+        Err(_) => { panic!() }
     }
 }
 
