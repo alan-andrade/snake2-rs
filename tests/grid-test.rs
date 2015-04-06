@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 use std::cmp::Ordering;
 
 struct Grid {
-    width: u8,
-    height: u8,
+    //width: u8,
+    //height: u8,
     source: BTreeMap<Position, Object>,
     generator: RandomGenerator
 }
@@ -16,6 +16,11 @@ struct Grid {
 enum Object {
     Foo,
     Bar
+}
+
+type AllocationResult = Result<Position, AllocationError>;
+enum AllocationError {
+    Collition(Object)
 }
 
 // From top left moving right and down.
@@ -29,7 +34,7 @@ enum Object {
 // 0,1 ------ 1,1
 //
 
-#[derive(Debug, Eq, PartialEq, Ord)]
+#[derive(Debug, Eq, PartialEq, Ord, Clone, Copy)] // Added Clone & Copy
 struct Position(u8, u8);
 
 impl PartialOrd for Position {
@@ -49,6 +54,7 @@ impl PartialOrd for Position {
     }
 }
 
+// TODO: This is ugly
 struct RandomGenerator {
     rng: ThreadRng,
     x_range: Range<u8>,
@@ -76,13 +82,13 @@ impl Grid {
     fn new(w: u8, h: u8) -> Grid {
         Grid {
             source: BTreeMap::new(),
-            width: w,
-            height: h,
+            //width: w,
+            //height: h,
             generator: RandomGenerator::new(w, h)
         }
     }
 
-    fn allocate(&mut self, object: Object) {
+    fn allocate(&mut self, object: Object) -> AllocationResult {
         let mut position;
 
         loop {
@@ -91,11 +97,15 @@ impl Grid {
             if !self.contains(&position) { break; }
         }
 
-        self.source.insert(position, object);
+        return self.allocate_at(position, object);
     }
 
-    fn allocate_at(&mut self, position: Position, object: Object) {
-        self.source.insert(position, object);
+    fn allocate_at(&mut self, position: Position, object: Object) -> AllocationResult {
+        if let Some(existent) = self.source.insert(position, object) {
+            return Err(AllocationError::Collition(existent));
+        } else {
+            return Ok(position);
+        }
     }
 
     fn object_at(&mut self, position: &Position) -> Option<&Object> {
@@ -124,20 +134,24 @@ fn grid_allocate() {
     assert_eq!(grid.occupied_count(), 2)
 }
 
+#[test]
 fn grid_allocate_at() {
     let mut grid = Grid::new(5, 5);
     let foo = Object::Foo;
     let position = Position(1, 1);
 
-    grid.allocate_at(position, foo);
-    let position = Position(1, 1);
+    match grid.allocate_at(position, foo) {
+        Ok(pos) => {
+            assert!(grid.contains(&pos));
 
-    assert!(grid.contains(&position));
-
-    match grid.object_at(&position) {
-        Some(object) => assert!(&foo == object),
-        None => panic!()
+            match grid.object_at(&position) {
+                Some(object) => assert!(&foo == object),
+                None => panic!()
+            }
+        },
+        Err(e) => { panic!(e) }
     }
+
 }
 
 #[test]
