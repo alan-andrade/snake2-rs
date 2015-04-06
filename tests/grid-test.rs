@@ -1,13 +1,15 @@
 extern crate rand;
 
 use rand::distributions::{IndependentSample, Range};
+use rand::ThreadRng;
 use std::collections::BTreeMap;
 use std::cmp::Ordering;
 
 struct Grid {
     width: u8,
     height: u8,
-    source: BTreeMap<Position, Object>
+    source: BTreeMap<Position, Object>,
+    generator: RandomGenerator
 }
 
 struct Object;
@@ -43,22 +45,41 @@ impl PartialOrd for Position {
     }
 }
 
+struct RandomGenerator {
+    rng: ThreadRng,
+    x_range: Range<u8>,
+    y_range: Range<u8>
+}
+
+impl RandomGenerator {
+    fn new(x_bound: u8, y_bound: u8) -> RandomGenerator {
+        RandomGenerator {
+            rng: rand::thread_rng(),
+            x_range: Range::new(1, x_bound),
+            y_range:  Range::new(1, y_bound)
+        }
+    }
+
+    fn gen(&mut self) -> Position {
+        return Position(self.x_range.ind_sample(&mut self.rng),
+        self.y_range.ind_sample(&mut self.rng));
+    }
+}
+
+
 
 impl Grid {
     fn new(w: u8, h: u8) -> Grid {
         Grid {
             source: BTreeMap::new(),
             width: w,
-            height: h
+            height: h,
+            generator: RandomGenerator::new(w, h)
         }
     }
 
     fn allocate(&mut self, object: Object) {
-        // Extract random generator.
-        let position = self.random_position();
-
-        assert!(position < Position(self.width, self.height));
-        self.source.insert(position, object);
+        self.source.insert(self.free_random_position(), object);
     }
 
     fn occupied_count(&self) -> u8 {
@@ -69,17 +90,12 @@ impl Grid {
         return self.source.contains_key(position);
     }
 
-    fn random_position(&mut self) -> Position {
-        let mut rng = rand::thread_rng();
-
-        let x_range = Range::new(1, self.width);
-        let y_range = Range::new(1, self.height);
+    fn free_random_position(&mut self) -> Position {
         let mut position;
 
         loop {
-            let x = x_range.ind_sample(&mut rng);
-            let y = y_range.ind_sample(&mut rng);
-            position = Position(x,y);
+            // Still have to figure out what to do when no positions are left.
+            position = self.generator.gen();
             if !self.contains(&position) { break; }
         }
 
@@ -98,6 +114,15 @@ fn grid_allocate () {
     grid.allocate(bar);
 
     assert_eq!(grid.occupied_count(), 2)
+}
+
+#[test]
+fn random_generator() {
+    let mut generator = RandomGenerator::new(5, 5);
+    let x = generator.gen();
+    let y = generator.gen();
+
+    assert!(x != y);
 }
 
 #[test]
