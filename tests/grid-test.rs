@@ -14,8 +14,9 @@ struct Grid {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Object {
-    Foo,
-    Bar
+    Snake,
+    Apple,
+    Wall
 }
 
 type AllocationResult = Result<Position, AllocationEvent>;
@@ -24,7 +25,8 @@ type AllocationResult = Result<Position, AllocationEvent>;
 enum AllocationEvent {
     Collition(Object),
     Yum,
-    Crash
+    Crash,
+    CollitionRuleMissing
 }
 
 // From top left moving right and down.
@@ -150,10 +152,10 @@ trait Collidable {
 impl Collidable for Object {
     fn handle_collition(&self, obstacle: &Object) -> AllocationResult {
         match (self, obstacle) {
-            (&Object::Foo, &Object::Foo) => { return Err(AllocationEvent::Crash); }
-            (&Object::Foo, &Object::Bar) |
-            (&Object::Bar, &Object::Foo) => { return Err(AllocationEvent::Yum ) }
-            (_, _) => { return Err(AllocationEvent::Crash) }
+            (&Object::Snake, &Object::Snake) |
+            (&Object::Snake, &Object::Wall) => {return Err(AllocationEvent::Crash); }
+            (&Object::Snake, &Object::Apple) => { return Err(AllocationEvent::Yum ) }
+            (_, _) => { return Err(AllocationEvent::CollitionRuleMissing) }
         }
     }
 }
@@ -162,12 +164,15 @@ impl Collidable for Object {
 fn game_has_a_grid() {
     let mut grid = Grid::new(4, 4);
     let mut game = Game { grid: &mut grid };
-    let foo = Object::Foo;
-    let bar = Object::Bar;
-    let position = Position(1, 1);
+    let (wall, apple, snake) = (Object::Wall, Object::Apple, Object::Snake);
 
-    assert_eq!(game.allocate_at(position, foo), Ok(position));
-    assert_eq!(game.allocate_at(position, bar), Err(AllocationEvent::Yum));
+    assert_eq!(game.allocate_at(Position(1, 1), wall), Ok(Position(1, 1)));
+    assert_eq!(game.allocate_at(Position(1, 2), apple), Ok(Position(1, 2)));
+    assert_eq!(game.allocate_at(Position(1, 2), snake), Err(AllocationEvent::Yum));
+    assert_eq!(game.allocate_at(Position(1, 1), snake), Err(AllocationEvent::Crash));
+    assert_eq!(game.allocate_at(Position(1, 3), snake), Ok(Position(1, 3)));
+    assert_eq!(game.allocate_at(Position(1, 3), snake), Err(AllocationEvent::Crash));
+    assert_eq!(game.allocate_at(Position(1, 1), apple), Err(AllocationEvent::CollitionRuleMissing));
 }
 
 #[test]
@@ -175,8 +180,8 @@ fn game_has_a_grid() {
 fn grid_allocate() {
     let mut grid = Grid::new(5, 5);
 
-    let foo = Object::Foo;
-    let bar = Object::Bar;
+    let foo = Object::Snake;
+    let bar = Object::Apple;
 
     grid.allocate(foo);
     grid.allocate(bar);
@@ -187,7 +192,7 @@ fn grid_allocate() {
 #[test]
 fn grid_allocate_at() {
     let mut grid = Grid::new(5, 5);
-    let foo = Object::Foo;
+    let foo = Object::Snake;
     let position = Position(1, 1);
 
     match grid.allocate_at(position, foo) {
@@ -208,8 +213,8 @@ fn grid_allocate_at() {
 #[allow(unused_must_use)]
 fn grid_collition() {
     let mut grid = Grid::new(3, 3);
-    let foo = Object::Foo;
-    let bar = Object::Bar;
+    let foo = Object::Snake;
+    let bar = Object::Apple;
     let position = Position(1, 1);
 
     grid.allocate_at(position, foo);
