@@ -79,6 +79,14 @@ impl Grid {
         }
     }
 
+    pub fn move_object(&mut self, from: Position, to: Position) -> AllocationEvent {
+        if let Some(obj) = self.source.remove(&from) {
+            self.allocate_at(to, obj)
+        } else {
+            AllocationEvent::MoveSourceEmpty
+        }
+    }
+
     fn object_at(&mut self, position: &Position) -> Option<&Object> {
         return self.source.get(position);
     }
@@ -88,6 +96,7 @@ impl Grid {
     }
 
     fn contains(&self, position: &Position) -> bool {
+        // This doesn't mean shit. TODO: Make it more robust
         return self.source.contains_key(position);
     }
 }
@@ -99,7 +108,8 @@ pub enum AllocationEvent {
     Yum,
     Crash,
     CollitionRuleMissing,
-    OutOfBounds
+    OutOfBounds,
+    MoveSourceEmpty
 }
 
 #[test]
