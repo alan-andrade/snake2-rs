@@ -1,8 +1,4 @@
 [package]
-
-name = "snake2-rs"
+name = "grid"
 version = "0.0.1"
 authors = ["Alan Andrade <alan.andradec@gmail.com>"]
-
-[dependencies.grid]
-path = "src/grid"
