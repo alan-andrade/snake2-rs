@@ -56,6 +56,20 @@ pub struct Grid {
     height: u8
 }
 
+static MIN_WIDTH : u8 = 1;
+static MIN_HEIGHT : u8 = 1;
+
+fn in_bound(grid: &Grid, position: &Position) -> bool {
+    let &Position(x, y) = position;
+
+    if x > grid.width || y > grid.height ||
+        x < MIN_WIDTH || y < MIN_HEIGHT {
+        false
+    } else {
+        true
+    }
+}
+
 impl Grid {
     pub fn new(w: u8, h: u8) -> Grid {
         Grid {
@@ -66,16 +80,14 @@ impl Grid {
     }
 
     pub fn allocate_at(&mut self, position: Position, object: Object) -> AllocationEvent {
-        let Position(x, y) = position;
-
-        if x > self.width || y > self.height {
-            return AllocationEvent::OutOfBounds;
+        if !in_bound(&self, &position) {
+            return AllocationEvent::OutOfBounds
         }
 
         if let Some(existent) = self.source.insert(position, object) {
-            return AllocationEvent::Collition(existent);
+            AllocationEvent::Collition(existent)
         } else {
-            return AllocationEvent::Allocated
+            AllocationEvent::Allocated
         }
     }
 
@@ -83,21 +95,16 @@ impl Grid {
         if let Some(obj) = self.source.remove(&from) {
             self.allocate_at(to, obj)
         } else {
-            AllocationEvent::MoveSourceEmpty
+            AllocationEvent::EmptySpace
         }
     }
 
-    fn object_at(&mut self, position: &Position) -> Option<&Object> {
-        return self.source.get(position);
-    }
-
-    fn occupied_count(&self) -> u8 {
-        return self.source.keys().count() as u8;
-    }
-
-    fn contains(&self, position: &Position) -> bool {
-        // This doesn't mean shit. TODO: Make it more robust
-        return self.source.contains_key(position);
+    pub fn object_at(&mut self, position: Position) -> Option<&Object> {
+        if in_bound(&self, &position) {
+            self.source.get(&position)
+        } else {
+            None
+        }
     }
 }
 
@@ -109,7 +116,7 @@ pub enum AllocationEvent {
     Crash,
     CollitionRuleMissing,
     OutOfBounds,
-    MoveSourceEmpty
+    EmptySpace
 }
 
 #[test]
@@ -137,8 +144,7 @@ fn grid_allocate_at() {
 
     match grid.allocate_at(position, foo) {
         AllocationEvent::Allocated => {
-            assert!(grid.contains(&position));
-            match grid.object_at(&position) {
+            match grid.object_at(position) {
                 Some(object) => assert!(&foo == object),
                 None => panic!()
             }
@@ -151,7 +157,9 @@ fn grid_allocate_at() {
 fn grid_allocate_at_out_of_bounds() {
     let mut grid = Grid::new(5, 5);
     let snake = Object::Snake;
-    let position = Position(6, 6);
 
+    let position = Position(6, 6);
+    assert_eq!(grid.allocate_at(position, snake), AllocationEvent::OutOfBounds);
+    let position = Position(0, 0);
     assert_eq!(grid.allocate_at(position, snake), AllocationEvent::OutOfBounds);
 }
