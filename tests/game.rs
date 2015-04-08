@@ -22,7 +22,7 @@ enum GameEvent {
 impl<'a, T> Game<'a, T> {
     fn add_object_at(&mut self, object: T, position: Position) -> GameEvent {
         match self.grid.allocate_object_at(object, position) {
-            AllocationEvent::Collition(obstacle) => { GameEvent::Crash },
+            AllocationEvent::Collition(_) => { GameEvent::Crash },
             AllocationEvent::Allocated => { GameEvent::ObjectAdded },
             _ => { GameEvent::Crash }
         }
@@ -37,9 +37,8 @@ fn game_has_a_grid() {
 
     assert_eq!(game.add_object_at(wall, Position(1, 1)), GameEvent::ObjectAdded);
     assert_eq!(game.add_object_at(apple, Position(1, 2)), GameEvent::ObjectAdded);
-    //assert_eq!(game.add_object_at(Position(1, 2), snake), AllocationEvent::Yum);
-    //assert_eq!(game.add_object_at(Position(1, 1), snake), AllocationEvent::Crash);
+    assert_eq!(game.add_object_at(snake, Position(1, 2)), GameEvent::Crash);
+    assert_eq!(game.add_object_at(snake, Position(1, 1)), GameEvent::Crash);
     assert_eq!(game.add_object_at(snake, Position(1, 3)), GameEvent::ObjectAdded);
-    //assert_eq!(game.add_object_att(Position(1, 3), snake), AllocationEvent::Crash);
-    //assert_eq!(game.add_object_att(Position(1, 1), apple), AllocationEvent::CollitionRuleMissing);
+    assert_eq!(game.add_object_at(snake, Position(1, 3)), GameEvent::Crash);
 }
