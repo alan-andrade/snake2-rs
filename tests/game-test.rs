@@ -1,18 +1,23 @@
 extern crate grid;
 
-use grid::{Grid, Object, Position, AllocationEvent};
+use grid::{Grid, Position, AllocationEvent};
 
-struct Game<'a> {
-    grid: &'a mut Grid
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Object {
+    Snake,
+    Apple,
+    Wall
 }
 
-impl<'a> Game<'a> {
-    fn allocate_at(&mut self, position: Position, object: Object) -> AllocationEvent {
-        match self.grid.allocate_at(position, object) {
+struct Game<'a, T: 'a> {
+    grid: &'a mut Grid<T>
+}
+
+impl<'a, T> Game<'a, T> where T: Collidable, T: Copy {
+    fn allocate_at(&mut self, position: Position, object: T) -> AllocationEvent<T> {
+        match self.grid.allocate_object_at(object, position) {
             AllocationEvent::Collition(obstacle) => {
-                // Object conforms to Collidable to be able to
-                // handle collitions.
-                object.handle_collition(&obstacle)
+                object.clone().handle_collition(obstacle)
             },
 
             AllocationEvent::Allocated => {
@@ -25,15 +30,15 @@ impl<'a> Game<'a> {
 }
 
 trait Collidable {
-    fn handle_collition(&self, &Object) -> AllocationEvent;
+    fn handle_collition(&self, Self) -> AllocationEvent<Self>;
 }
 
 impl Collidable for Object {
-    fn handle_collition(&self, obstacle: &Object) -> AllocationEvent {
+    fn handle_collition(&self, obstacle: Object) -> AllocationEvent<Object> {
         match (self, obstacle) {
-            (&Object::Snake, &Object::Snake) |
-            (&Object::Snake, &Object::Wall) => {return AllocationEvent::Crash; }
-            (&Object::Snake, &Object::Apple) => { return AllocationEvent::Yum; }
+            (&Object::Snake, Object::Snake) |
+            (&Object::Snake, Object::Wall) => {return AllocationEvent::Crash; }
+            (&Object::Snake, Object::Apple) => { return AllocationEvent::Yum; }
             (_, _) => { return AllocationEvent::CollitionRuleMissing }
         }
     }

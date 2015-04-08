@@ -41,17 +41,10 @@ fn position_is_ordinal() {
     assert!(right_down > left_up);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Object {
-    Snake,
-    Apple,
-    Wall
-}
-
 use std::collections::BTreeMap;
 
-pub struct Grid {
-    source: BTreeMap<Position, Object>,
+pub struct Grid<T> {
+    source: BTreeMap<Position, T>,
     width: u8,
     height: u8
 }
@@ -59,7 +52,7 @@ pub struct Grid {
 static MIN_WIDTH : u8 = 1;
 static MIN_HEIGHT : u8 = 1;
 
-fn in_bound(grid: &Grid, position: &Position) -> bool {
+fn in_bound<T>(grid: &Grid<T>, position: &Position) -> bool {
     let &Position(x, y) = position;
 
     if x > grid.width || y > grid.height ||
@@ -70,8 +63,8 @@ fn in_bound(grid: &Grid, position: &Position) -> bool {
     }
 }
 
-impl Grid {
-    pub fn new(w: u8, h: u8) -> Grid {
+impl<T> Grid<T> {
+    pub fn new(w: u8, h: u8) -> Grid<T> {
         Grid {
             source: BTreeMap::new(),
             width: w,
@@ -79,7 +72,7 @@ impl Grid {
         }
     }
 
-    pub fn allocate_at(&mut self, position: Position, object: Object) -> AllocationEvent {
+    pub fn allocate_object_at(&mut self, object: T, position: Position) -> AllocationEvent<T> {
         if !in_bound(&self, &position) {
             return AllocationEvent::OutOfBounds
         }
@@ -91,15 +84,15 @@ impl Grid {
         }
     }
 
-    pub fn move_object(&mut self, from: Position, to: Position) -> AllocationEvent {
+    pub fn move_object(&mut self, from: Position, to: Position) -> AllocationEvent<T> {
         if let Some(obj) = self.source.remove(&from) {
-            self.allocate_at(to, obj)
+            self.allocate_object_at(obj, to)
         } else {
             AllocationEvent::EmptySpace
         }
     }
 
-    pub fn object_at(&mut self, position: Position) -> Option<&Object> {
+    pub fn object_at(&mut self, position: Position) -> Option<&T> {
         if in_bound(&self, &position) {
             self.source.get(&position)
         } else {
@@ -109,9 +102,9 @@ impl Grid {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub enum AllocationEvent {
+pub enum AllocationEvent<T> {
     Allocated,
-    Collition(Object),
+    Collition(T),
     Yum,
     Crash,
     CollitionRuleMissing,
@@ -123,13 +116,13 @@ pub enum AllocationEvent {
 #[allow(unused_must_use)]
 fn grid_collition() {
     let mut grid = Grid::new(3, 3);
-    let foo = Object::Snake;
-    let bar = Object::Apple;
+    let foo = Some("foo");
+    let bar = Some("bar");
     let position = Position(1, 1);
 
-    grid.allocate_at(position, foo);
+    grid.allocate_object_at(foo, position);
 
-    match grid.allocate_at(position, bar) {
+    match grid.allocate_object_at(bar, position) {
         AllocationEvent::Allocated => panic!(),
         AllocationEvent::Collition(e) => { assert_eq!(e, foo) }
         _ => { panic!() }
@@ -137,12 +130,12 @@ fn grid_collition() {
 }
 
 #[test]
-fn grid_allocate_at() {
+fn grid_allocate_object_at() {
     let mut grid = Grid::new(5, 5);
-    let foo = Object::Snake;
+    let foo = Some("foo");
     let position = Position(1, 1);
 
-    match grid.allocate_at(position, foo) {
+    match grid.allocate_object_at(foo, position) {
         AllocationEvent::Allocated => {
             match grid.object_at(position) {
                 Some(object) => assert!(&foo == object),
@@ -154,12 +147,12 @@ fn grid_allocate_at() {
 }
 
 #[test]
-fn grid_allocate_at_out_of_bounds() {
+fn grid_allocs_out_of_bounds() {
     let mut grid = Grid::new(5, 5);
-    let snake = Object::Snake;
+    let snake = Some("snake");
 
     let position = Position(6, 6);
-    assert_eq!(grid.allocate_at(position, snake), AllocationEvent::OutOfBounds);
+    assert_eq!(grid.allocate_object_at(snake, position), AllocationEvent::OutOfBounds);
     let position = Position(0, 0);
-    assert_eq!(grid.allocate_at(position, snake), AllocationEvent::OutOfBounds);
+    assert_eq!(grid.allocate_object_at(snake, position), AllocationEvent::OutOfBounds);
 }
