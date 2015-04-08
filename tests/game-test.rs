@@ -17,7 +17,7 @@ impl<'a, T> Game<'a, T> where T: Collidable, T: Copy {
     fn allocate_at(&mut self, position: Position, object: T) -> AllocationEvent<T> {
         match self.grid.allocate_object_at(object, position) {
             AllocationEvent::Collition(obstacle) => {
-                object.clone().handle_collition(obstacle)
+                object.handle_collition(obstacle)
             },
 
             AllocationEvent::Allocated => {
