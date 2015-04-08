@@ -5,5 +5,5 @@ function buildDeps {
   cd grid && cargo test
 }
 
-buildDeps
 cargo test
+buildDeps
