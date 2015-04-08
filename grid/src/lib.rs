@@ -105,9 +105,6 @@ impl<T> Grid<T> {
 pub enum AllocationEvent<T> {
     Allocated,
     Collition(T),
-    Yum,
-    Crash,
-    CollitionRuleMissing,
     OutOfBounds,
     EmptySpace
 }
