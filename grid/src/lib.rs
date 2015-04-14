@@ -12,6 +12,16 @@
 #[derive(Debug, Eq, PartialEq, Ord, Clone, Copy)]
 pub struct Position(pub u8, pub u8);
 
+use std::fmt::{Formatter, Display, Error};
+
+impl Display for Position {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        let Position(x,y) = *self;
+        try!(write!(f, "({:?}, {:?})", x, y));
+        Display::fmt("",f)
+    }
+}
+
 use std::cmp::Ordering;
 
 impl PartialOrd for Position {
@@ -45,12 +55,12 @@ use std::collections::BTreeMap;
 
 pub struct Grid<T> {
     source: BTreeMap<Position, T>,
-    width: u8,
-    height: u8
+    pub width: u8,
+    pub height: u8
 }
 
-static MIN_WIDTH : u8 = 1;
-static MIN_HEIGHT : u8 = 1;
+pub static MIN_WIDTH : u8 = 1;
+pub static MIN_HEIGHT : u8 = 1;
 
 fn in_bound<T>(grid: &Grid<T>, position: &Position) -> bool {
     let &Position(x, y) = position;
@@ -70,6 +80,10 @@ impl<T> Grid<T> {
             width: w,
             height: h
         }
+    }
+
+    pub fn center(&mut self) -> Position {
+        return Position(self.width/2,  self.height/2);
     }
 
     pub fn allocate_object_at(&mut self, object: T, position: Position) -> AllocationEvent<T> {
