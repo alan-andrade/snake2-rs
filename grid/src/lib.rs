@@ -98,6 +98,10 @@ impl<T> Grid<T> {
         }
     }
 
+    pub fn free(&mut self, position: &Position) {
+        self.source.remove(position);
+    }
+
     pub fn move_object(&mut self, from: Position, to: Position) -> AllocationEvent<T> {
         if let Some(obj) = self.source.remove(&from) {
             self.allocate_object_at(obj, to)

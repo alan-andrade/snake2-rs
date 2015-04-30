@@ -9,10 +9,7 @@ pub enum Object {
     Wall
 }
 
-impl Object {
-    fn foo() {}
-}
-
+#[derive(Debug, PartialEq, Eq)]
 enum Direction {
     Up,
     Right,
@@ -21,7 +18,22 @@ enum Direction {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Player(Position, Object);
+struct Player {
+    body: Vec<Position>,
+    direction: Direction
+}
+
+impl Player {
+    fn head(&self) -> Option<&Position> {
+        self.body.last()
+    }
+
+    fn move_to(&mut self, position: Position) -> Position {
+        self.body.push(position);
+        self.body.remove(0);
+        return position;
+    }
+}
 
 fn navigate(position: &Position, direction: Direction) -> Position {
     let Position(x, y) = *position;
@@ -70,23 +82,6 @@ fn setup_walls(grid: &mut Grid<Object>) {
     }
 }
 
-fn setup_snake(grid: &mut Grid<Object>) {
-    use grid::AllocationEvent::Allocated;
-
-    let mut position = grid.center();
-    for _ in (1..4) {
-        position = match grid.allocate_object_at(Object::Snake, position) {
-            Allocated => navigate(&position, Direction::Up),
-            _ => panic!("Position {} is not available, Couldn't allocate snake", position)
-        }
-    }
-}
-
-fn setup_grid(grid: &mut Grid<Object>) {
-    setup_walls(grid);
-    setup_snake(grid);
-}
-
 #[test]
 fn test_setup_walls() {
     let mut grid = Grid::new(5, 5);
@@ -98,15 +93,53 @@ fn test_setup_walls() {
     assert_eq!(grid.object_at(Position(3, 3)), None);
 }
 
+struct Controller<'a> {
+    grid: &'a mut Grid<Object>
+}
+
+impl<'a> Controller<'a> {
+    fn add_player(&mut self) -> Player {
+        use grid::AllocationEvent::Allocated;
+
+        let mut body = vec!();
+        let mut position = self.grid.center();
+        for _ in (1..4) {
+            position = match self.grid.allocate_object_at(Object::Snake, position) {
+                Allocated => {
+                    body.push(position);
+                    navigate(&position, Direction::Up)
+                }
+                _ => panic!("Position {} is not available, Couldn't allocate snake", position)
+            }
+        }
+
+        return Player { body: body, direction: Direction::Down }
+    }
+
+    fn move_player(&mut self, player: &mut Player, direction: Direction) -> bool {
+        use grid::AllocationEvent::*;
+
+        // player needs to know dafuq positions it was provided.
+        let next_position = navigate(player.head().unwrap(), direction);
+        self.grid.free(&player.move_to(next_position));
+
+        match self.grid.allocate_object_at(Object::Snake, next_position) {
+            Allocated => true,
+            _ => false
+        }
+    }
+}
+
 #[test]
-fn test_setup_grid() {
-    let mut grid = Grid::new(10, 10);
+fn test_controller() {
+    let mut grid = Grid::new(4, 10);
+    let mut controller = Controller { grid: &mut grid };
 
-    setup_grid(&mut grid);
-
-    assert_eq!(grid.object_at(Position(1, 1)), Some(&Object::Wall));
-    let center = grid.center();
-    assert_eq!(grid.object_at(center), Some(&Object::Snake));
+    let mut player = controller.add_player();
+    assert!(controller.move_player(&mut player, Direction::Right));
+    assert!(controller.move_player(&mut player, Direction::Right));
+    // CRASH HERE against a wall
+    assert!(!controller.move_player(&mut player, Direction::Right));
 }
 
 fn main () { }
