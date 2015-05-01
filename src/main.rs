@@ -97,10 +97,10 @@ struct Controller<'a> {
     grid: &'a mut Grid<Object>
 }
 
+use grid::AllocationEvent::*;
+
 impl<'a> Controller<'a> {
     fn add_player(&mut self) -> Player {
-        use grid::AllocationEvent::Allocated;
-
         let mut body = vec!();
         let mut position = self.grid.center();
         for _ in (1..4) {
@@ -116,30 +116,28 @@ impl<'a> Controller<'a> {
         return Player { body: body, direction: Direction::Down }
     }
 
-    fn move_player(&mut self, player: &mut Player, direction: Direction) -> bool {
-        use grid::AllocationEvent::*;
+    fn move_player(&mut self, player: &mut Player, direction: Direction) -> grid::AllocationEvent<Object> {
 
-        // player needs to know dafuq positions it was provided.
         let next_position = navigate(player.head().unwrap(), direction);
         self.grid.free(&player.move_to(next_position));
 
-        match self.grid.allocate_object_at(Object::Snake, next_position) {
-            Allocated => true,
-            _ => false
-        }
+        println!("Moving to: {:?}", next_position);
+        return self.grid.allocate_object_at(Object::Snake, next_position);
     }
 }
 
 #[test]
 fn test_controller() {
     let mut grid = Grid::new(4, 10);
+    setup_walls(&mut grid);
     let mut controller = Controller { grid: &mut grid };
-
     let mut player = controller.add_player();
-    assert!(controller.move_player(&mut player, Direction::Right));
-    assert!(controller.move_player(&mut player, Direction::Right));
-    // CRASH HERE against a wall
-    assert!(!controller.move_player(&mut player, Direction::Right));
+
+    println!("Player: {:?}", player);
+    println!("{:?}", controller.grid);
+    assert_eq!(controller.move_player(&mut player, Direction::Right), Allocated);
+    assert_eq!(controller.move_player(&mut player, Direction::Right), Allocated);
+    assert_eq!(controller.move_player(&mut player, Direction::Right), Collition(Object::Wall));
 }
 
 fn main () { }

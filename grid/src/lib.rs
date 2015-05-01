@@ -52,11 +52,22 @@ fn position_is_ordinal() {
 }
 
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 
 pub struct Grid<T> {
     source: BTreeMap<Position, T>,
     pub width: u8,
     pub height: u8
+}
+
+impl<T: Debug> Debug for Grid<T> {
+    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+        try!(writeln!(fmt, "Grid:"));
+        for (key, value) in self.source.iter() {
+            try!(write!(fmt, "{:?}", value))
+        }
+        write!(fmt, "--")
+    }
 }
 
 pub static MIN_WIDTH : u8 = 1;
