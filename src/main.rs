@@ -1,13 +1,7 @@
 extern crate grid;
 
-use grid::{Grid, Position};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Object {
-    Snake,
-    Apple,
-    Wall
-}
+use grid::{Grid, Position, Object};
+use grid::Object::*;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Direction {
@@ -30,8 +24,9 @@ impl Player {
 
     fn move_to(&mut self, position: Position) -> Position {
         self.body.push(position);
+        let tail = self.body[0];
         self.body.remove(0);
-        return position;
+        return tail;
     }
 }
 
@@ -46,7 +41,7 @@ fn navigate(position: &Position, direction: Direction) -> Position {
     }
 }
 
-fn setup_walls(grid: &mut Grid<Object>) {
+fn setup_walls(grid: &mut Grid) {
 
     let mut to_be_occupied = vec!();
 
@@ -78,7 +73,7 @@ fn setup_walls(grid: &mut Grid<Object>) {
     }
 
     for position in to_be_occupied {
-        grid.allocate_object_at(Object::Wall, position);
+        grid.allocate_object_at(Wall, position);
     }
 }
 
@@ -86,15 +81,15 @@ fn setup_walls(grid: &mut Grid<Object>) {
 fn test_setup_walls() {
     let mut grid = Grid::new(5, 5);
     setup_walls(&mut grid);
-    assert_eq!(grid.object_at(Position(1, 1)), Some(&Object::Wall));
-    assert_eq!(grid.object_at(Position(5, 5)), Some(&Object::Wall));
-    assert_eq!(grid.object_at(Position(1, 5)), Some(&Object::Wall));
-    assert_eq!(grid.object_at(Position(5, 1)), Some(&Object::Wall));
-    assert_eq!(grid.object_at(Position(3, 3)), None);
+    assert_eq!(grid.object_at(Position(1, 1)), Some(&Wall));
+    assert_eq!(grid.object_at(Position(5, 5)), Some(&Wall));
+    assert_eq!(grid.object_at(Position(1, 5)), Some(&Wall));
+    assert_eq!(grid.object_at(Position(5, 1)), Some(&Wall));
+    assert_eq!(grid.object_at(Position(3, 3)), Some(&Empty));
 }
 
 struct Controller<'a> {
-    grid: &'a mut Grid<Object>
+    grid: &'a mut Grid
 }
 
 use grid::AllocationEvent::*;
@@ -104,7 +99,7 @@ impl<'a> Controller<'a> {
         let mut body = vec!();
         let mut position = self.grid.center();
         for _ in (1..4) {
-            position = match self.grid.allocate_object_at(Object::Snake, position) {
+            position = match self.grid.allocate_object_at(Snake, position) {
                 Allocated => {
                     body.push(position);
                     navigate(&position, Direction::Up)
@@ -122,22 +117,27 @@ impl<'a> Controller<'a> {
         self.grid.free(&player.move_to(next_position));
 
         println!("Moving to: {:?}", next_position);
-        return self.grid.allocate_object_at(Object::Snake, next_position);
+        return self.grid.allocate_object_at(Snake, next_position);
     }
 }
 
 #[test]
 fn test_controller() {
-    let mut grid = Grid::new(4, 10);
+    let mut grid = Grid::new(10, 10);
     setup_walls(&mut grid);
     let mut controller = Controller { grid: &mut grid };
     let mut player = controller.add_player();
 
-    println!("Player: {:?}", player);
     println!("{:?}", controller.grid);
     assert_eq!(controller.move_player(&mut player, Direction::Right), Allocated);
+    println!("{:?}", controller.grid);
     assert_eq!(controller.move_player(&mut player, Direction::Right), Allocated);
-    assert_eq!(controller.move_player(&mut player, Direction::Right), Collition(Object::Wall));
+    println!("{:?}", controller.grid);
+    assert_eq!(controller.move_player(&mut player, Direction::Right), Allocated);
+    println!("{:?}", controller.grid);
+    assert_eq!(controller.move_player(&mut player, Direction::Up), Allocated);
+    println!("{:?}", controller.grid);
+    assert_eq!(controller.move_player(&mut player, Direction::Up), Collition(Wall));
 }
 
 fn main () { }
