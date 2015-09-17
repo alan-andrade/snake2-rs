@@ -1,9 +1,0 @@
-#!/bin/bash
-
-
-function buildDeps {
-  cd grid && cargo test
-}
-
-cargo test
-buildDeps
